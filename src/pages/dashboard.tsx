@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabaseClient'
-import LogoBinekas from '../assets/LogoBhinekas.png'
 
 const TK_CLASSES = [
   'Blue Pinter Morning',
@@ -97,7 +96,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="w-full max-w-md bg-white shadow-lg rounded-xl p-8">
-        <img src={LogoBinekas.src} alt="Binekas Logo" className="h-32 mx-auto mb-6" />
+        <img src="./LogoBinekas.png" alt="Binekas Logo" className="h-32 mx-auto mb-6" />
         {errorMsg && <p className="text-red-500 text-sm mb-4 text-center">{errorMsg}</p>}
 
         <form onSubmit={handleAddStudent} className="space-y-6">
