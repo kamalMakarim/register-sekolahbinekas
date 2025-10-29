@@ -101,7 +101,7 @@ export default function Dashboard() {
 
         <form onSubmit={handleAddStudent} className="space-y-6">
           <div>
-            <label className="block text-sm font-semibold mb-2 text-gray-700">Nama Lengkap</label>
+            <label className="block text-sm font-semibold mb-2 text-gray-700">Nama Lengkap Anak</label>
             <input
               type="text"
               value={studentName}
@@ -113,7 +113,7 @@ export default function Dashboard() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold mb-2 text-gray-700">Tahun Masuk</label>
+            <label className="block text-sm font-semibold mb-2 text-gray-700">Tahun Masuk Anak</label>
             <input
               type="number"
               value={batch}
@@ -131,7 +131,7 @@ export default function Dashboard() {
               onChange={e => setLevel(e.target.value as 'TK' | 'SD')}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="TK">TK</option>
+              <option value="TK">TK/PG</option>
               <option value="SD">SD</option>
             </select>
           </div>
