@@ -70,7 +70,7 @@ export default function Dashboard() {
               onClick={() => router.push('/add-student')}
               className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 transition duration-200 shadow"
             >
-              + Add Student
+              + Add Child
             </button>
           </div>
         </div>
