@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabaseClient'
+import Link from 'next/link'
 
 export default function Register() {
   const [email, setEmail] = useState('')
@@ -113,6 +114,18 @@ export default function Register() {
           >
             Register
           </button>
+          <div className="text-center text-sm text-gray-600">
+            Already have an account ?{' '}
+            <Link href="/">
+              <button
+                type="button"
+                onClick={() => router.push('/')}
+                className="text-blue-600 font-semibold hover:underline"
+              >
+                Login
+              </button>
+            </Link>
+          </div>
         </form>
       </div>
     </div>
