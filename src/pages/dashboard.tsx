@@ -1,163 +1,133 @@
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/router'
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useRouter } from 'next/router'
 
-const TK_CLASSES = [
-  'Blue Pinter Morning',
-  'Blue Pinter Afternoon',
-  'Green Motekar',
-  'Green Wanter',
-  'Green Maher',
-  'Yellow Maher',
-  'Yellow Motekar',
-  'Yellow Wanter',
-]
-
-const SD_CLASSES = [
-  'Gumujeng',
-  'Someah',
-  'Rancage',
-  'Gentur',
-  'Macakal',
-  'Calakan',
-  'Singer',
-  'Rancingeus',
-  'Jatmika',
-  'Gumanti',
-  'Marahmay',
-  'Rucita',
-  'Binangkit',
-  'Gumilang',
-  'Sonagar',
-]
+interface Student {
+  id: string
+  name: string
+  batch: number
+  class_name: string
+  status: 'pending' | 'rejected' | 'authenticated'
+  created_at: string
+}
 
 export default function Dashboard() {
-  const [studentName, setStudentName] = useState('')
-  const [batch, setBatch] = useState<number>(0)
-  const [level, setLevel] = useState<'TK' | 'SD'>('TK')
-  const [className, setClassName] = useState('')
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const router = useRouter()
 
-  useEffect(() => {
+    useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) {
-        router.push('/register')
+        router.push('/')
       } else {
         setLoading(false)
       }
     })
   }, [router])
 
-  const handleAddStudent = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setErrorMsg(null)
-    const { data: userData } = await supabase.auth.getUser()
-    if (!userData?.user) {
-      setErrorMsg('Not logged in.')
-      return
-    
-    }
-    const formattedName =
-      studentName
-        .toLowerCase()
-        .replace(/\b\w/g, char => char.toUpperCase())
-        .trim()
-    setStudentName(formattedName)
+  
+  useEffect(() => {
+    fetchStudents()
+  }, [])
 
-    const { error } = await supabase
-      .from('students_pending')
-      .insert([
-        {
-          parent_auth_id: userData.user.id,
-          name: formattedName,
-          batch,
-          class_name: className,
-          status: 'pending'
-        }
-      ])
-    if (error) {
-      setErrorMsg(error.message)
+  const fetchStudents = async () => {
+    setLoading(true)
+    setErrorMsg(null)
+
+    const {
+      data: { user },
+      error: authError
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      router.push('/login')
       return
     }
-    alert('Student added to pending list!')
-    setStudentName('')
-    setBatch(0)
-    setClassName('')
+
+    const { data, error } = await supabase
+      .from('students_pending')
+      .select('id, name, batch, class_name, status, created_at')
+      .eq('parent_auth_id', user.id)
+      .in('status', ['pending', 'rejected', 'authenticated'])
+      .order('created_at', { ascending: false })
+
+    if (error) setErrorMsg(error.message)
+    else setStudents(data || [])
+
+    setLoading(false)
   }
 
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <p className="text-lg text-gray-600 animate-pulse">Loading...</p>
-    </div>
-  )
-
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="w-full max-w-md bg-white shadow-lg rounded-xl p-8">
-        <img src="./LogoBinekas.png" alt="Binekas Logo" className="h-32 mx-auto mb-6" />
-        {errorMsg && <p className="text-red-500 text-sm mb-4 text-center">{errorMsg}</p>}
-
-        <form onSubmit={handleAddStudent} className="space-y-6">
-          <div>
-            <label className="block text-sm font-semibold mb-2 text-gray-700">Nama Lengkap Anak</label>
-            <input
-              type="text"
-              value={studentName}
-              onChange={e => setStudentName(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-              placeholder="Masukkan nama lengkap anak"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold mb-2 text-gray-700">Tahun Masuk Anak</label>
-            <input
-              type="number"
-              value={batch}
-              onChange={e => setBatch(Number(e.target.value))}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-              placeholder="Contoh: 2024"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold mb-2 text-gray-700">Level</label>
-            <select
-              value={level}
-              onChange={e => setLevel(e.target.value as 'TK' | 'SD')}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center py-10 px-4">
+      <div className="w-full max-w-3xl bg-white shadow-lg rounded-xl p-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-gray-800">Parent Dashboard</h1>
+          <div className="flex gap-3">
+            <button
+              onClick={() => router.push('/add-student')}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-700 transition duration-200 shadow"
             >
-              <option value="TK">TK/PG</option>
-              <option value="SD">SD</option>
-            </select>
+              + Add Student
+            </button>
           </div>
+        </div>
 
-          <div>
-            <label className="block text-sm font-semibold mb-2 text-gray-700">Class Name</label>
-            <select
-              value={className}
-              onChange={e => setClassName(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            >
-              <option value="">Select Class</option>
-              {(level === 'TK' ? TK_CLASSES : SD_CLASSES).map(cls => (
-                <option key={cls} value={cls}>{cls}</option>
-              ))}
-            </select>
+        {/* Error message */}
+        {errorMsg && (
+          <p className="text-red-500 text-sm mb-4 text-center">{errorMsg}</p>
+        )}
+
+        {/* Table or loading state */}
+        {loading ? (
+          <p className="text-center text-gray-600">Loading students...</p>
+        ) : students.length === 0 ? (
+          <p className="text-center text-gray-600">No pending students found.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full border border-gray-200 rounded-lg overflow-hidden">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Name</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Batch</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Class</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Status</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {students.map((student) => (
+                  <tr
+                    key={student.id}
+                    className="border-t border-gray-200 hover:bg-gray-50 transition"
+                  >
+                    <td className="py-3 px-4 text-gray-800">{student.name}</td>
+                    <td className="py-3 px-4 text-gray-700">{student.batch}</td>
+                    <td className="py-3 px-4 text-gray-700">{student.class_name}</td>
+                    <td className="py-3 px-4">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          student.status === 'pending'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : student.status === 'authenticated'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-700'
+                        }`}
+                      >
+                        {student.status}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-gray-600 text-sm">
+                      {new Date(student.created_at).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition duration-200 shadow"
-          >
-            Add Student
-          </button>
-        </form>
+        )}
       </div>
     </div>
   )
