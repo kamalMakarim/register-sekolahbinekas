@@ -134,7 +134,7 @@ export default function Dashboard() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold mb-2 text-gray-700">Class Name</label>
+            <label className="block text-sm font-semibold mb-2 text-gray-700">Kelas</label>
             <select
               value={className}
               onChange={e => setClassName(e.target.value)}
