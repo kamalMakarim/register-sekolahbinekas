@@ -3,10 +3,18 @@ import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabaseClient'
 import Link from 'next/link'
 
+interface UserPublic{
+  id: string
+  auth_id : string
+  display_name: string
+  profile_picture_url: string | null
+}
+
 export default function Register() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [retypePassword, setRetypePassword] = useState('')
+  const [displayName, setDisplayName] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showRetypePassword, setShowRetypePassword] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -30,10 +38,24 @@ export default function Register() {
       return
     }
 
-    const { error } = await supabase.auth.signUp({ email, password })
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password })
+    if (signUpError) {
+      setErrorMsg(signUpError.message)
+      return
+    }
 
-    if (error) {
-      setErrorMsg(error.message)
+    const userId = signUpData?.user?.id
+    if (!userId) {
+      setErrorMsg('User registration failed. Please try again.')
+      return
+    }
+
+    const { error: updateError } = await supabase.from('users_public').update({
+      display_name: displayName
+    }).eq('auth_id', userId)
+
+    if (updateError) {
+      setErrorMsg(updateError.message)
       return
     }
 
@@ -59,7 +81,20 @@ export default function Register() {
               onChange={e => setEmail(e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
-              placeholder="Enter your email"
+              placeholder="example@mail.com"
+            />
+          </div>
+
+          {/* Display Name */}
+          <div>
+            <label className="block text-sm font-semibold mb-2 text-gray-700">First Name</label>
+            <input
+              type="text"
+              value={displayName}
+              onChange={e => setDisplayName(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+              placeholder="Enter your first name"
             />
           </div>
 
