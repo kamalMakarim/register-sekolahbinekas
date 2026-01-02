@@ -2,42 +2,22 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabaseClient'
 
-const TK_CLASSES = [
-  'Blue Pinter Morning',
-  'Blue Pinter Afternoon',
-  'Green Motekar',
-  'Green Wanter',
-  'Green Maher',
-  'Yellow Maher',
-  'Yellow Motekar',
-  'Yellow Wanter',
-]
-
-const SD_CLASSES = [
-  'Gumujeng',
-  'Someah',
-  'Rancage',
-  'Gentur',
-  'Macakal',
-  'Calakan',
-  'Singer',
-  'Rancingeus',
-  'Jatmika',
-  'Gumanti',
-  'Marahmay',
-  'Rucita',
-  'Binangkit',
-  'Gumilang',
-  'Sonagar',
-]
+type ClassRow = {
+  class_name: string
+  tingkat: 'TK' | 'SD'
+}
 
 export default function Dashboard() {
   const [studentName, setStudentName] = useState('')
-  const [batch, setBatch] = useState<number>(0)
+  const [batch, setBatch] = useState<number>(new Date().getFullYear())
   const [level, setLevel] = useState<'TK' | 'SD'>('TK')
   const [className, setClassName] = useState('')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+
+  // 👉 store ALL classes once
+  const [allClasses, setAllClasses] = useState<ClassRow[]>([])
+
   const router = useRouter()
 
   useEffect(() => {
@@ -50,20 +30,42 @@ export default function Dashboard() {
     })
   }, [router])
 
+  // ✅ fetch ALL classes only once
+  useEffect(() => {
+    const fetchAllClasses = async () => {
+      const { data, error } = await supabase
+        .from('tingkat_classes')
+        .select('class_name, tingkat')
+
+      if (!error && data) {
+        setAllClasses(data)
+      }
+    }
+
+    fetchAllClasses()
+  }, [])
+
+  // 👉 derived classes based on selected level
+  const classes = allClasses
+    .filter(c => c.tingkat === level)
+    .map(c => c.class_name)
+
   const handleAddStudent = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMsg(null)
+
     const { data: userData } = await supabase.auth.getUser()
     if (!userData?.user) {
       setErrorMsg('Not logged in.')
       return
-
     }
+
     const formattedName =
       studentName
         .toLowerCase()
         .replace(/\b\w/g, char => char.toUpperCase())
         .trim()
+
     setStudentName(formattedName)
 
     const { error } = await supabase
@@ -77,40 +79,50 @@ export default function Dashboard() {
           status: 'pending'
         }
       ])
+
     if (error) {
       setErrorMsg(error.message)
       return
     }
+
     router.push('/dashboard')
   }
 
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <p className="text-lg text-gray-600 animate-pulse">Loading...</p>
-    </div>
-  )
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <p className="text-lg text-gray-600 animate-pulse">Loading...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="w-full max-w-md bg-white shadow-lg rounded-xl p-8">
         <img src="./LogoBinekas.png" alt="Binekas Logo" className="h-32 mx-auto mb-6" />
-        {errorMsg && <p className="text-red-500 text-sm mb-4 text-center">{errorMsg}</p>}
+        {errorMsg && (
+          <p className="text-red-500 text-sm mb-4 text-center">{errorMsg}</p>
+        )}
 
         <form onSubmit={handleAddStudent} className="space-y-6">
           <div>
-            <label className="block text-sm font-semibold mb-2 text-gray-700">Nama Lengkap Anak</label>
+            <label className="block text-sm font-semibold mb-2 text-gray-700">
+              Nama Lengkap Anak
+            </label>
             <input
               type="text"
               value={studentName}
               onChange={e => setStudentName(e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
-              placeholder="Masukkan nama lengkap anak"
+              placeholder="Masukkan Nama Lengkap Anak"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold mb-2 text-gray-700">Tahun Masuk Anak</label>
+            <label className="block text-sm font-semibold mb-2 text-gray-700">
+              Tahun Masuk Anak
+            </label>
             <input
               type="number"
               value={batch}
@@ -122,10 +134,15 @@ export default function Dashboard() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold mb-2 text-gray-700">Level</label>
+            <label className="block text-sm font-semibold mb-2 text-gray-700">
+              Jenjang
+            </label>
             <select
               value={level}
-              onChange={e => setLevel(e.target.value as 'TK' | 'SD')}
+              onChange={e => {
+                setLevel(e.target.value as 'TK' | 'SD')
+                setClassName('') // reset class on level change
+              }}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="TK">TK/PG</option>
@@ -134,7 +151,9 @@ export default function Dashboard() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold mb-2 text-gray-700">Kelas</label>
+            <label className="block text-sm font-semibold mb-2 text-gray-700">
+              Kelas
+            </label>
             <select
               value={className}
               onChange={e => setClassName(e.target.value)}
@@ -142,8 +161,10 @@ export default function Dashboard() {
               required
             >
               <option value="">Select Class</option>
-              {(level === 'TK' ? TK_CLASSES : SD_CLASSES).map(cls => (
-                <option key={cls} value={cls}>{cls}</option>
+              {classes.map(cls => (
+                <option key={cls} value={cls}>
+                  {cls}
+                </option>
               ))}
             </select>
           </div>
