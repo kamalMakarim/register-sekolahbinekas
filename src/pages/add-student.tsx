@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabaseClient'
 type ClassRow = {
   class_name: string
   tingkat: 'TK' | 'SD'
+  tahun: number
 }
 
 export default function Dashboard() {
@@ -35,7 +36,7 @@ export default function Dashboard() {
     const fetchAllClasses = async () => {
       const { data, error } = await supabase
         .from('tingkat_classes')
-        .select('class_name, tingkat')
+        .select('class_name, tingkat, tahun')
 
       if (!error && data) {
         setAllClasses(data)
@@ -45,10 +46,8 @@ export default function Dashboard() {
     fetchAllClasses()
   }, [])
 
-  // 👉 derived classes based on selected level
-  const classes = allClasses
-    .filter(c => c.tingkat === level)
-    .map(c => c.class_name)
+  // 👉 derived classes based on selected level (keep tahun for display)
+  const classesDetails = allClasses.filter(c => c.tingkat === level).sort((a, b) => a.tahun - b.tahun)
 
   const handleAddStudent = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -121,20 +120,6 @@ export default function Dashboard() {
 
           <div>
             <label className="block text-sm font-semibold mb-2 text-gray-700">
-              Tahun Masuk Anak
-            </label>
-            <input
-              type="number"
-              value={batch}
-              onChange={e => setBatch(Number(e.target.value))}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-              placeholder="Contoh: 2024"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold mb-2 text-gray-700">
               Jenjang
             </label>
             <select
@@ -156,17 +141,42 @@ export default function Dashboard() {
             </label>
             <select
               value={className}
-              onChange={e => setClassName(e.target.value)}
+              onChange={e => {
+                const cur = e.currentTarget
+                if (!cur.value) {
+                  setClassName('')
+                  setBatch(new Date().getFullYear())
+                  return
+                }
+                const tahunAttr = cur.options[cur.selectedIndex].getAttribute('data-tahun')
+                const tahun = tahunAttr ? Number(tahunAttr) : new Date().getFullYear()
+                setClassName(cur.value)
+                setBatch(new Date().getFullYear() - tahun)
+              }}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             >
               <option value="">Select Class</option>
-              {classes.map(cls => (
-                <option key={cls} value={cls}>
-                  {cls}
+              {classesDetails.map(c => (
+                <option key={`${c.class_name}-${c.tahun}`} value={c.class_name} data-tahun={c.tahun}>
+                  {`(${c.tahun}) ${c.class_name}`}
                 </option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold mb-2 text-gray-700">
+              Tahun Masuk Anak
+            </label>
+            <input
+              type="number"
+              value={batch}
+              onChange={e => setBatch(Number(e.target.value))}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+              placeholder="Contoh: 2024"
+            />
           </div>
 
           <button
