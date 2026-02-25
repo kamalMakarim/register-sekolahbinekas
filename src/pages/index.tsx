@@ -31,7 +31,20 @@ export default function Login() {
       return
     }
 
-    router.push('/dashboard')
+    const { data: userData } = await supabase.auth.getUser()
+    const userId = userData.user?.id
+    if (!userId) {
+      setErrorMsg('Failed to retrieve user information')
+      return
+    }
+
+    const { data: roleData } = await supabase.from('users_private').select('role').eq('auth_id', userId).single()
+    if (roleData?.role === 'parent') {
+        router.push('/dashboard')
+    }
+    else {
+        router.push('/dashboard-non-parent')
+    }
   }
 
   return (
